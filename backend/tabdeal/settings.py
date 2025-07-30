@@ -23,12 +23,8 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "ABC123")
 
 DEBUG = os.environ.get("DEBUG", 1)
 
-ALLOWED_HOSTS = os.environ.get(
-    "DJANGO_ALLOWED_HOSTS",
-    [
-        "*",
-    ],
-)
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", "*,").split(",")
+
 
 
 INSTALLED_APPS = [
@@ -40,7 +36,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # My Apps
     "core",
-    # "accounts",
+    "accounts",
     # Third Party Apps
     "rest_framework",
     "rest_framework.authtoken",

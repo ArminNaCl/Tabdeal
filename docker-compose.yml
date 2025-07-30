@@ -10,6 +10,8 @@ services:
       POSTGRES_DB: scales_ops
     ports:
       - "5433:5432"
+    volumes:
+      - "./db_data/:/var/lib/postgresql/data"
   backend:
     build:
       context: ./backend
@@ -24,6 +26,5 @@ services:
       - 8000
     volumes:
       - "./backend/:/backend/"
-    command: python manage.py runserver 0.0.0.0:8000
     depends_on:
       - db
