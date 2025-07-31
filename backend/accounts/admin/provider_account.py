@@ -1,15 +1,10 @@
 from django.contrib import admin
 
-from .models import (
+from accounts.models import (
     ProviderAccount,
     ProviderAccountTeamMember,
     ProviderWallet,
-    PhoneNumber,
-    RequestCharge,
-    RequestDeposit,
 )
-
-from simple_history.admin import SimpleHistoryAdmin
 
 
 class ProviderAccountTeamMemberInline(admin.TabularInline):
@@ -81,40 +76,3 @@ class ProviderAccountAdmin(admin.ModelAdmin):
             self.message_user(
                 request, "Provider wallet created automatically for %s." % obj.name
             )
-
-
-admin.site.register(PhoneNumber)
-
-admin.site.register(RequestCharge)
-
-
-class RequestDepositAdmin(SimpleHistoryAdmin):
-    list_display = ("id", "requester", "amount", "status", "created")
-
-    base_readonly_fields = [
-        "requester",
-        "user_id",
-        "amount",
-        "account",
-    ]
-
-    def get_readonly_fields(self, request, obj=None):
-        if not obj:
-            return []
-        if obj and obj.is_finalized() or request.user != obj.assignee :
-            return [field.name for field in self.model._meta.fields]
-
-        return self.base_readonly_fields
-
-    def has_change_permission(self, request, obj=None):
-        if obj and not obj.is_finalized():
-            return request.user.is_superuser or request.user != obj.assignee 
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        if obj and not obj.is_finalized():
-            return request.user.is_superuser or request.user != obj.assignee 
-        return False
-
-
-admin.site.register(RequestDeposit, RequestDepositAdmin)
