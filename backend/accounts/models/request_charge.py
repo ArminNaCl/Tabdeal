@@ -1,4 +1,3 @@
-from django.contrib.auth import PermissionDenied
 from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
@@ -45,10 +44,14 @@ class RequestCharge(TimestampMixin, models.Model):
 
                 if provider_wallet.balance < amount:
                     raise ValueError("Insufficient balance in provider account.")
-                if requester.permission_level not in [
-                    ProviderAccountTeamMember.PermissionLevel.ADMIN,
-                    ProviderAccountTeamMember.PermissionLevel.STAFF,
-                ]:
+                if (
+                    requester.account.id != provider_account_id
+                    or requester.permission_level
+                    not in [
+                        ProviderAccountTeamMember.PermissionLevel.ADMIN,
+                        ProviderAccountTeamMember.PermissionLevel.STAFF,
+                    ]
+                ):
                     raise PermissionError(
                         "The Requester user does not have permission to this action"
                     )

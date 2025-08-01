@@ -14,7 +14,8 @@ from simple_history.models import HistoricalRecords
 User = get_user_model()
 
 
-class RequestDeposit(TimestampMixin, models.Model):  # SupportTicket
+# Name Can be Support Ticket too
+class RequestDeposit(TimestampMixin, models.Model):
     class Status(models.TextChoices):
         OPEN = "open", _("open")
         APPROVED = "approved", _("approved")
@@ -65,7 +66,6 @@ class RequestDeposit(TimestampMixin, models.Model):  # SupportTicket
         else:
             self.assignee = self.select_assignee()
             self.user_id = self.requester.user.id
-        super().clean()
 
     def save(self, *args, **kwargs):
         if self.pk:
@@ -79,13 +79,17 @@ class RequestDeposit(TimestampMixin, models.Model):  # SupportTicket
             original_status = None
             is_new = True
             if (
-                self.requester.permission_level
+                self.requester.account != self.account
+                or self.requester.permission_level
                 != ProviderAccountTeamMember.PermissionLevel.ADMIN
             ):
                 raise PermissionError(
                     "The Requester user does not have permission to this action"
                 )
-            
+            if not self.assignee_id:
+                self.assignee = self.select_assignee()
+            if not self.user_id:
+                self.user_id = self.requester.user.id
 
         super().save(*args, **kwargs)
 
