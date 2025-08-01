@@ -6,7 +6,7 @@ from accounts.models import RequestCharge, PhoneNumber, ProviderAccount
 from core.utils import PhoneNumberRegexValidation
 
 
-class RequestChargeSerializer(serializers.ModelSerializer):
+class RequestChargeCreateSerializer(serializers.ModelSerializer):
     provider_account = serializers.PrimaryKeyRelatedField(
         queryset=ProviderAccount.objects.filter(is_active=True),
     )
@@ -50,3 +50,13 @@ class RequestChargeSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"detail": "An unexpected error occurred during charge creation."}
             )
+
+
+class RequestChargeDetailSerializer(serializers.ModelSerializer):
+    account_name = serializers.CharField(source="provider_account.name", read_only=True)
+    number = serializers.CharField(source="phone_number.number",read_only=True)
+    
+    
+    class Meta:
+        model = RequestCharge
+        fields = ["number", "account_name", "amount"]

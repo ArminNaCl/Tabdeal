@@ -52,8 +52,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    # ThirdParty
     "simple_history.middleware.HistoryRequestMiddleware",
+    'core.middleware.RequestLoggingMiddleware', 
 ]
 
 ROOT_URLCONF = "tabdeal.urls"
