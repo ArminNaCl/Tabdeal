@@ -1,10 +1,9 @@
-
+from django.contrib.auth import PermissionDenied
 from django.db import models, transaction
 from django.utils.translation import gettext_lazy as _
 
 from core.models import TimestampMixin
-from accounts.models import ProviderWallet,ProviderAccountTeamMember,PhoneNumber
-
+from accounts.models import ProviderWallet, ProviderAccountTeamMember, PhoneNumber
 
 
 class RequestCharge(TimestampMixin, models.Model):
@@ -35,15 +34,24 @@ class RequestCharge(TimestampMixin, models.Model):
     ):
         with transaction.atomic():
             try:
+                if not amount or amount <= 0:
+                    raise ValueError("Charge amount must be positive.")
                 provider_wallet = ProviderWallet.objects.select_for_update().get(
                     account_id=provider_account_id
                 )
                 requester = ProviderAccountTeamMember.objects.get(user_id=user_id)
 
-                phone_number = PhoneNumber.objects.get(phone_number_id=phone_number_id)
+                phone_number = PhoneNumber.objects.get(id=phone_number_id)
 
                 if provider_wallet.balance < amount:
                     raise ValueError("Insufficient balance in provider account.")
+                if requester.permission_level not in [
+                    ProviderAccountTeamMember.PermissionLevel.ADMIN,
+                    ProviderAccountTeamMember.PermissionLevel.STAFF,
+                ]:
+                    raise PermissionError(
+                        "The Requester user does not have permission to this action"
+                    )
 
                 provider_wallet.balance = models.F("balance") - amount
                 provider_wallet.save(update_fields=["balance"])
@@ -60,6 +68,8 @@ class RequestCharge(TimestampMixin, models.Model):
                 raise ValueError("Provider wallet not found.")
             except PhoneNumber.DoesNotExist:
                 raise ValueError("Phone number not found.")
+            except ProviderAccountTeamMember.DoesNotExist:
+                raise ValueError("Requester not found.")
             except Exception as e:
                 # TODO Handel Error
                 raise e

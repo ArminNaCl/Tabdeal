@@ -7,11 +7,12 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 
 from core.models import TimestampMixin
-from accounts.models import ProviderWallet
+from accounts.models import ProviderWallet, ProviderAccountTeamMember
 
 from simple_history.models import HistoricalRecords
 
 User = get_user_model()
+
 
 class RequestDeposit(TimestampMixin, models.Model):  # SupportTicket
     class Status(models.TextChoices):
@@ -26,7 +27,7 @@ class RequestDeposit(TimestampMixin, models.Model):  # SupportTicket
         related_name="deposit_requests",
     )
     user_id = models.PositiveBigIntegerField(
-        _("user_id"), help_text=_("id of requester user")
+        _("user_id"), help_text=_("id of requester user"), blank=True, null=True
     )  # requester.user.id
 
     amount = models.PositiveBigIntegerField("amount")
@@ -38,7 +39,7 @@ class RequestDeposit(TimestampMixin, models.Model):  # SupportTicket
         verbose_name=_("assignee"),
         on_delete=models.CASCADE,
         related_name="deposit_requests",
-        blank=True
+        blank=True,
     )
     comment = models.TextField(
         _("comment"), blank=True, null=True
@@ -59,25 +60,39 @@ class RequestDeposit(TimestampMixin, models.Model):  # SupportTicket
             original_request_deposit = RequestDeposit.objects.get(pk=self.pk)
             if original_request_deposit.is_finalized():
                 raise ValidationError(
-                _("Cannot change the status of a finalized deposit request.")
-            )
-        self.assignee = self.select_assignee()
+                    _("Cannot change the status of a finalized deposit request.")
+                )
+        else:
+            self.assignee = self.select_assignee()
+            self.user_id = self.requester.user.id
         super().clean()
 
     def save(self, *args, **kwargs):
-        original_status = None
         if self.pk:
+            is_new = False
             original_request_deposit = RequestDeposit.objects.get(pk=self.pk)
             if original_request_deposit.is_finalized():
                 raise ValidationError(_("Cannot modify a finalized deposit request."))
             else:
-                original_status = original_request_deposit.status    
+                original_status = original_request_deposit.status
+        else:
+            original_status = None
+            is_new = True
+            if (
+                self.requester.permission_level
+                != ProviderAccountTeamMember.PermissionLevel.ADMIN
+            ):
+                raise PermissionError(
+                    "The Requester user does not have permission to this action"
+                )
+            
 
         super().save(*args, **kwargs)
 
         if (
             self.status == self.Status.APPROVED
             and original_status != self.Status.APPROVED
+            and not is_new
         ):
             ProviderWallet.deposit(account_id=self.account.id, amount=self.amount)
 
@@ -92,4 +107,3 @@ class RequestDeposit(TimestampMixin, models.Model):  # SupportTicket
     class Meta:
         verbose_name = _("request of deposit")
         verbose_name_plural = _("requests of deposit")
-
