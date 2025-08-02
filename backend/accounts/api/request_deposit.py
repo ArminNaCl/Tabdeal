@@ -4,11 +4,10 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 
 
-from drf_spectacular.utils import extend_schema, OpenApiExample, inline_serializer
-from drf_spectacular.types import OpenApiTypes
-from rest_framework import serializers  # Import serializers for inline_serializer
+from drf_spectacular.utils import extend_schema
 
-from accounts.models import RequestDeposit
+
+from accounts.models import RequestDeposit,ProviderAccountTeamMember
 from accounts.serializers import (
     RequestDepositCreateSerializer,
     RequestDepositDetailSerializer,
@@ -41,8 +40,16 @@ def request_deposit_list_create(request):
     API View for listing all deposit requests or creating a new one.
     """
     if request.method == "GET":
-        # TODO if request.user == Admin filter by Account if Staff created and not hich
-        deposit_requests = RequestDeposit.objects.all().order_by("-created")
+        queryset = RequestDeposit.objects.all()
+        if request.user.is_admin:
+            queryset=queryset
+        elif request.user.tame.permission_level == ProviderAccountTeamMember.PermissionLevel.ADMIN:
+            queryset = queryset.filter(account=request.user.team.account)
+        elif request.user.tame.permission_level == ProviderAccountTeamMember.PermissionLevel.STAFF:
+            queryset = queryset.filter(user_id=request.user.id)
+        else:
+            queryset= queryset.none
+        deposit_requests = queryset.order_by("-created")
         serializer = RequestDepositDetailSerializer(deposit_requests, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
