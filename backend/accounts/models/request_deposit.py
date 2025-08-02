@@ -63,9 +63,6 @@ class RequestDeposit(TimestampMixin, models.Model):
                 raise ValidationError(
                     _("Cannot change the status of a finalized deposit request.")
                 )
-        else:
-            self.assignee = self.select_assignee()
-            self.user_id = self.requester.user.id
 
     def save(self, *args, **kwargs):
         if self.pk:

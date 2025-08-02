@@ -66,7 +66,7 @@ class RequestDepositModelTest(TestCase):
             rejected_request.is_finalized(), "Rejected request should be finalized."
         )
 
-    def test_clean_sets_assignee(self):
+    def test_save_sets_assignee(self):
 
         request = RequestDeposit(
             requester=self.requester_team_member,
@@ -74,10 +74,10 @@ class RequestDepositModelTest(TestCase):
             account=self.provider_account,
             status=RequestDeposit.Status.OPEN,
         )
-        request.clean()
+        request.save()
 
         self.assertEqual(
-            request.assignee, self.staff_user, "clean() should set the assignee."
+            request.assignee, self.staff_user, "Save should set the assignee."
         )
 
     def test_clean_prevents_change_on_finalized_request(self):
