@@ -18,7 +18,6 @@ class ProviderWallet(TimestampMixin, models.Model):
     def deposit(cls, account_id: int, amount: int):
         with transaction.atomic():
             try:
-                print(account_id)
                 account = cls.objects.get(account_id=account_id)
                 account.balance = models.F("balance") + amount
                 account.save()
